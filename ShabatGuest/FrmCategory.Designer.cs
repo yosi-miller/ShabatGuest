@@ -115,7 +115,6 @@
             this.dgvAllChoices.RowTemplate.Height = 40;
             this.dgvAllChoices.Size = new System.Drawing.Size(964, 287);
             this.dgvAllChoices.TabIndex = 6;
-            this.dgvAllChoices.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView1_CellContentClick);
             // 
             // dgvGuestChoices
             // 

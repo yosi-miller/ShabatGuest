@@ -14,6 +14,7 @@ namespace ShabatGuest
 {
     public partial class Form1 : Form
     {
+        // מגדיר מתשנה שכיל את הערך שחוזר בעת חיבור לדאטה בייס
         public SqlConnection connection;
 
         // מגדיר את נתיב החיבור לשרת SQL

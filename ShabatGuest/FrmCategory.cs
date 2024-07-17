@@ -19,26 +19,17 @@ namespace ShabatGuest
             lalGuestName.Text = _guestName;
             lblCategoryName.Text = _categoryName;
             ParentInstance = _parentInstance;
-
             Index = _index;
-            
-            Console.WriteLine(ParentInstance.categoriesList.Count() + " " + Index);
-            //dgvAllChoices.DataSource = selectAllFoodByCategory(_categoryName);
-            //dgvGuestChoices.DataSource = selectAllFoodByGuest(_categoryName, _guestName);
+            selectAllFoodByCategory(lblCategoryName.Text);
+            selectAllFoodByGuest(lblCategoryName.Text, lalGuestName.Text);
         }
 
         private void FrmCategory_Load(object sender, EventArgs e)
         {
-            MessageBox.Show(Index.ToString());
             if (Index == ParentInstance.categoriesList.Count - 1)
                 btnNext.Enabled = false;
             if (Index == 0)
                 btnBack.Enabled = false;
-        }
-
-        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
-        {
-            dgvGuestChoices.DataSource = "db";
         }
 
         private void btnAddFood_Click(object sender, EventArgs e)
@@ -50,11 +41,56 @@ namespace ShabatGuest
 
         private void btnOk_Click(object sender, EventArgs e)
         {
+
+            // טיפול שמירת המאכל שנוסף
+            if (string.IsNullOrEmpty(txtAddFood.Text))
+                return;
+            insertNewFood(txtAddFood.Text);
+        }
+
+        private void insertNewFood(string food)
+        {
+            string query = @"IF NOT EXISTS (SELECT dishes.dishes_name
+                                FROM dishes
+                                INNER JOIN guest
+                                ON dishes.guest_id =  guest.id
+                                INNER JOIN category
+                                ON dishes.category_id =  category.id
+                                WHERE guest.guest_name = @currentGuest 
+                                AND category.category_name = @currentCategory
+                                AND dishes.dishes_name = @currentFood
+                                )
+                                BEGIN
+                                    INSERT INTO dishes (dishes_name, guest_id, category_id)
+                                    VALUES (@currentFood,
+                                            (SELECT id FROM guest WHERE guest_name = @currentGuest),
+                                            (SELECT id FROM category WHERE category_name = @currentCategory))
+                                END";
+
+            if (ParentInstance.connectDb())
+            {
+                SqlCommand cmd = new SqlCommand(query, ParentInstance.connection);
+                cmd.Parameters.AddWithValue("@currentGuest", lalGuestName.Text);
+                cmd.Parameters.AddWithValue("@currentCategory", lblCategoryName.Text);
+                cmd.Parameters.AddWithValue("@currentFood", food);
+                int updateRows = cmd.ExecuteNonQuery();
+                if (updateRows == -1)
+                {
+                    MessageBox.Show("בחרת כבר את זה, בחר מאכל אחר");
+                    return;
+                }
+                ParentInstance.disConnectDb();
+            }
+            
+            // after the addition the new food import agine the food and food of category
+            selectAllFoodByCategory(lblCategoryName.Text);
+            selectAllFoodByGuest(lblCategoryName.Text, lalGuestName.Text);
+
+            // מנקה את הטקסט שהוזן בתיבת אינפוט
+            txtAddFood.Text = "";
             // משנה את מצב הכפתור הוספת מאכל ואת מצב הפנאל הוספת מאכל
             btnAddFood.Enabled = true;
             pAddFood.Enabled = false;
-
-            // טיפול שמירת המאכל שנוסף
         }
 
         private void btnNext_Click(object sender, EventArgs e)
@@ -76,7 +112,7 @@ namespace ShabatGuest
             }
         }
 
-        private DataTable selectAllFoodByCategory(string category)
+        private void selectAllFoodByCategory(string category)
         {
             DataTable result = new DataTable();
             string query = @"SELECT dishes.dishes_name AS 'שם', COUNT(dishes.dishes_name) AS 'כמות'
@@ -93,10 +129,10 @@ namespace ShabatGuest
                 adapter.Fill(result);
                 ParentInstance.disConnectDb();
             }
-            return result;
+            dgvAllChoices.DataSource = result;
         }
 
-        private DataTable selectAllFoodByGuest(string categoryName, string guestName)
+        private void selectAllFoodByGuest(string categoryName, string guestName)
         {
             DataTable result = new DataTable();
             string qurey = @"SELECT dishes.dishes_name AS 'הבחירה שלך'
@@ -107,7 +143,7 @@ namespace ShabatGuest
                                     ON dishes.category_id =  category.id
                                     WHERE guest.guest_name = @guestName 
                                     AND category.category_name = @categoryName";
-           
+
             if (ParentInstance.connectDb())
             {
                 SqlCommand cmd = new SqlCommand(qurey, ParentInstance.connection);
@@ -118,7 +154,7 @@ namespace ShabatGuest
                 adapter.Fill(result);
                 ParentInstance.disConnectDb();
             }
-            return result;
+            dgvGuestChoices.DataSource = result;
         }
     }
 }
